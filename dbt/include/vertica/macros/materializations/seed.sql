@@ -67,8 +67,8 @@
         delimiter ','
         enclosed by '"'
         skip 1
-        abort on error
-        rejected data as table {{ this.without_identifier() }}.seed_rejects;
+        abort on error;
+        -- rejected data as table {{ this.without_identifier() }}.seed_rejects;
     {% endset %}
 
     {{ return(sql) }}

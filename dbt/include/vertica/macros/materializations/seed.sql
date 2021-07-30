@@ -64,7 +64,9 @@
         copy {{ this.render() }}
         ({{ cols_sql }})
         from local '{{ agate_table.original_abspath }}'
+        trailing nullcols
         delimiter ','
+        NULL AS 'NULL'
         enclosed by '"'
         skip 1
         abort on error;

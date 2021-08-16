@@ -131,7 +131,7 @@
   {% endif %}
   {% if segmented_by_string is not none and order_by_string is not none and not temporary -%}
   segmented by {{ segmented_by_string }}
-  all nodes ksafe{% if "docker" in database %} 0 {% else %} 1 {% endif %}
+  all nodes ksafe{% if database is not None and "docker" in database %} 0 {% else %} 1 {% endif %}
   {% endif %}
   {% if partition_by_string is not none and segmented_by_string is not none and not temporary -%}
   partition by {{ partition_by_string }}

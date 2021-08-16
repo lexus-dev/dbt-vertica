@@ -114,6 +114,9 @@
 
 {% macro vertica__create_table_as(temporary, relation, sql) -%}
   {%- set sql_header = config.get('sql_header', none) -%}
+  {%- set order_by_string = config.get('order_by_string', default=none) -%}
+  {%- set segmented_by_string = config.get('segmented_by_string', default=none) -%}
+  {%- set partition_by_string = config.get('partition_by_string', default=none) -%}
 
   {{ sql_header if sql_header is not none }}
 
@@ -122,7 +125,19 @@
     {% if temporary: -%}on commit preserve rows{%- endif %}
   as (
     {{ sql }}
-  );
+  )
+  {% if order_by_string is not none and not temporary -%}
+  order by {{ order_by_string }}
+  {% endif %}
+  {% if segmented_by_string is not none and order_by_string is not none and not temporary -%}
+  segmented by {{ segmented_by_string }}
+  all nodes ksafe{% if "docker" in sql %} 0 {% else %} 1 {% endif %}
+  {% endif %}
+  {% if partition_by_string is not none and segmented_by_string is not none and not temporary -%}
+  partition by {{ partition_by_string }}
+  group by {{ partition_by_string }}
+  {% endif %}
+  ;
 {% endmacro %}
 
 {% macro vertica__make_temp_relation(base_relation, suffix) %}

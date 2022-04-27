@@ -10,6 +10,7 @@ import dbt.clients.agate_helper
 import dbt.exceptions
 import agate
 import vertica_python
+from vertica_python.messages import ErrorResponse
 
 
 @dataclass
@@ -103,8 +104,8 @@ class verticaConnectionManager(SQLConnectionManager):
             rows = cursor.fetchall()
             while cursor.nextset():
                 check = cursor._message
-                logger.debug(f'Cursor message is: {check}')
-                if 'ERROR' in check:
+                if isinstance(check, ErrorResponse):
+                    logger.debug(f'Cursor message is: {check}')
                     self.release()
                     raise dbt.exceptions.DatabaseException(str(check))
             data = cls.process_results(column_names, rows)
@@ -124,8 +125,8 @@ class verticaConnectionManager(SQLConnectionManager):
             table = dbt.clients.agate_helper.empty_table()
             while cursor.nextset():
                 check = cursor._message
-                logger.debug(f'Cursor message is: {check}')
-                if 'ERROR' in check:
+                if isinstance(check, ErrorResponse):
+                    logger.debug(f'Cursor message is: {check}')
                     self.release()
                     raise dbt.exceptions.DatabaseException(str(check))
         return response, table

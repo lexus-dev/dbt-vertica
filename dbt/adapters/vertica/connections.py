@@ -124,7 +124,7 @@ class verticaConnectionManager(SQLConnectionManager):
             table = dbt.clients.agate_helper.empty_table()
             while cursor.nextset():
                 check = cursor._message
-                if isinstance(check, vertica_python.messages.ErrorResponse):
+                if isinstance(check, vertica_python.vertica.messages.ErrorResponse):
                     logger.debug(f'Cursor message is: {check}')
                     self.release()
                     raise dbt.exceptions.DatabaseException(str(check))

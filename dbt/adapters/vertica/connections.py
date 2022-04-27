@@ -103,6 +103,10 @@ class verticaConnectionManager(SQLConnectionManager):
             rows = cursor.fetchall()
             while cursor.nextset():
                 check = cursor._message
+                logger.debug(f'Cursor message is: {check}')
+                if 'ERROR' in check:
+                    self.release()
+                    raise dbt.exceptions.DatabaseException(str(check))
             data = cls.process_results(column_names, rows)
 
         return dbt.clients.agate_helper.table_from_data_flat(
@@ -118,14 +122,12 @@ class verticaConnectionManager(SQLConnectionManager):
             table = self.get_result_from_cursor(cursor)
         else:
             table = dbt.clients.agate_helper.empty_table()
-            try:
-                while cursor.nextset():
-                    check = cursor._message
-                    logger.debug(f'Cursor message is: {check}')
-            except Exception as exc:
-                logger.debug(f':P Error: {exc}')
-                self.release()
-                raise dbt.exceptions.DatabaseException(str(exc))
+            while cursor.nextset():
+                check = cursor._message
+                logger.debug(f'Cursor message is: {check}')
+                if 'ERROR' in check:
+                    self.release()
+                    raise dbt.exceptions.DatabaseException(str(check))
         return response, table
 
     @classmethod

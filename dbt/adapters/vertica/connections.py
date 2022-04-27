@@ -5,8 +5,9 @@ from dbt.adapters.base import Credentials
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.contracts.connection import AdapterResponse
 from dbt.logger import GLOBAL_LOGGER as logger
+import dbt.clients.agate_helper
 import dbt.exceptions
-
+import agate
 import vertica_python
 
 
@@ -86,21 +87,43 @@ class verticaConnectionManager(SQLConnectionManager):
 
     @classmethod
     def get_response(cls, cursor) -> AdapterResponse:
-        row_count = cursor.rowcount
-        msg = cursor._message
-        while cursor.nextset():
-            row_count_tmp = cursor.rowcount
         return AdapterResponse(
-            _message=str(msg),
-            rows_affected=row_count,
+            _message=str(cursor._message),
+            rows_affected=cursor.rowcount,
         )
 
     @classmethod
+    def get_result_from_cursor(cls, cursor: Any) -> agate.Table:
+        data: List[Any] = []
+        column_names: List[str] = []
+
+        if cursor.description is not None:
+            column_names = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+            while cursor.nextset():
+                check = cursor.rowcount
+            data = cls.process_results(column_names, rows)
+
+        return dbt.clients.agate_helper.table_from_data_flat(
+            data,
+            column_names
+        )
+
+    def execute(self, sql: str, auto_begin: bool = False, fetch: bool = False) -> Tuple[Union[AdapterResponse, str], agate.Table]:
+        sql = self._add_query_comment(sql)
+        _, cursor = self.add_query(sql, auto_begin)
+        response = self.get_response(cursor)
+        if fetch:
+            table = self.get_result_from_cursor(cursor)
+        else:
+            table = dbt.clients.agate_helper.empty_table()
+            while cursor.nextset():
+                check = cursor.rowcount
+        return response, table
+
+    @classmethod
     def get_status(cls, cursor):
-        row_count = cursor.rowcount
-        while cursor.nextset():
-            row_count_tmp = cursor.rowcount
-        return str(row_count)
+        return str(cursor.rowcount)
 
     def cancel(self, connection):
         logger.debug(':P Cancel query')

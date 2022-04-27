@@ -89,8 +89,7 @@ class verticaConnectionManager(SQLConnectionManager):
         row_count = cursor.rowcount
         msg = cursor._message
         while cursor.nextset():
-            row_count = cursor.rowcount
-            msg = cursor._message
+            row_count_tmp = cursor.rowcount
         return AdapterResponse(
             _message=str(msg),
             rows_affected=row_count,
@@ -100,7 +99,7 @@ class verticaConnectionManager(SQLConnectionManager):
     def get_status(cls, cursor):
         row_count = cursor.rowcount
         while cursor.nextset():
-            row_count = cursor.rowcount
+            row_count_tmp = cursor.rowcount
         return str(row_count)
 
     def cancel(self, connection):

@@ -67,36 +67,36 @@
 
 {% macro vertica__get_columns_in_relation(relation) -%}
   {% call statement('get_columns_in_relation', fetch_result=True) %}
-    select 
+    select
     column_name
     , data_type
-    , character_maximum_length 
-    , numeric_precision 
+    , character_maximum_length
+    , numeric_precision
     , numeric_scale
     from (
-        select 
+        select
         column_name
         , data_type
-        , character_maximum_length 
-        , numeric_precision 
-        , numeric_scale 
-        , ordinal_position 
+        , character_maximum_length
+        , numeric_precision
+        , numeric_scale
+        , ordinal_position
         from v_catalog.columns
         where table_schema = '{{ relation.schema }}'
         and table_name = '{{ relation.identifier }}'
         union all
-        select 
+        select
         column_name
         , data_type
-        , character_maximum_length 
-        , numeric_precision 
-        , numeric_scale 
-        , ordinal_position 
+        , character_maximum_length
+        , numeric_precision
+        , numeric_scale
+        , ordinal_position
         from v_catalog.view_columns
         where table_schema = '{{ relation.schema }}'
         and table_name = '{{ relation.identifier }}'
     ) t
-    order by ordinal_position 
+    order by ordinal_position
   {% endcall %}
   {% set table = load_result('get_columns_in_relation').table %}
   {{ return(sql_convert_columns_in_relation(table)) }}
@@ -106,7 +106,7 @@
   {% set sql_header = config.get('sql_header', none) %}
 
   {{ sql_header if sql_header is not none }}
-  create or replace view {{ relation }} as (
+  create or replace view {{ relation }} include schema privileges as (
     {{ sql }}
   );
 
@@ -152,20 +152,20 @@
 
 {% macro vertica__get_catalog(information_schema, schemas) -%}
   {% call statement('get_catalog', fetch_result=True) %}
-    
-    select 
+
+    select
     '{{ information_schema.database }}' table_database
     , tab.table_schema
     , tab.table_name
     , 'TABLE' table_type
     , comment table_comment
     , tab.owner_name table_owner
-    , col.column_name 
+    , col.column_name
     , col.ordinal_position column_index
     , col.data_type column_type
     , nullif('','') column_comment
     from v_catalog.tables tab
-    join v_catalog.columns col on tab.table_id = col.table_id 
+    join v_catalog.columns col on tab.table_id = col.table_id
     left join v_catalog.comments on tab.table_id = object_id
     where not(tab.is_system_table) and
         (
@@ -174,19 +174,19 @@
           {%- endfor -%}
         )
     union all
-    select 
+    select
     '{{ information_schema.database }}' table_database
     , vw.table_schema
     , vw.table_name
     , 'VIEW' table_type
     , comment table_comment
     , vw.owner_name table_owner
-    , col.column_name 
+    , col.column_name
     , col.ordinal_position column_index
     , col.data_type column_type
     , nullif('','') column_comment
     from v_catalog.views vw
-    join v_catalog.view_columns col on vw.table_id = col.table_id 
+    join v_catalog.view_columns col on vw.table_id = col.table_id
     left join v_catalog.comments on vw.table_id = object_id
     where not(vw.is_system_view) and
         (
@@ -194,8 +194,8 @@
             lower(vw.table_schema) = lower('{{ schema }}') {%- if not loop.last %} or {% endif %}
           {%- endfor -%}
         )
-    order by table_schema, table_name, column_index 
-    
+    order by table_schema, table_name, column_index
+
   {% endcall %}
   {{ return(load_result('get_catalog').table) }}
 {% endmacro %}

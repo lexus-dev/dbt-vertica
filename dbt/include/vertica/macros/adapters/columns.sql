@@ -48,9 +48,15 @@
 {%- endmacro %}
 
 
-{% macro vertica__alter_relation_add_remove_columns(relation, column_name, new_column_type) -%}
+{% macro vertica__alter_relation_add_remove_columns(relation, add_columns, remove_columns) -%}
+  {% if add_columns|length %}
+    {% do return(adapter.dispatch('create_columns', 'dbt')(relation, add_columns)) %}
+  {% endif %}
+
+  {%- if remove_columns|length -%}
   {{ exceptions.raise_not_implemented(
     'alter_relation_add_remove_columns macro not implemented for adapter '+adapter.type()) }}
+  {%- endif %}
 {%- endmacro %}
 
 

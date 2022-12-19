@@ -18,9 +18,10 @@ Below is a table for what features the current Vertica adapter supports for dbt.
 | Table Materializations                            | Yes         |
 | Ephemeral Materializations                        | Yes         |
 | View Materializations                             | Yes         |
-| Incremental Materializations - Append             | Untested    |
-| Incremental Materailizations - Insert + Overwrite | Yes         |
+| Incremental Materializations - Append             | No          |
+| Incremental Materailizations - Insert + Overwrite | No          |
 | Incremental Materializations - Merge              | Yes         |
+| Incremental Materializations - Delete + Insert    | Yes         |
 | Snapshots - Timestamp                             | Passes Test |
 | Snapshots - Check Cols                            | Passes Test |
 | Seeds                                             | Yes         |
@@ -37,7 +38,7 @@ Below is a table for what features the current Vertica adapter supports for dbt.
 
 Below is a table for what features the current Vertica adapter supports for Vertica. This is constantly improving and changing as both dbt adds new functionality, as well as the dbt-vertica driver improves.
 
-| Vertica Features      | Supported |    
+| Vertica Features      | Supported |
 | --------------------- | --------- |
 | Created/Drop Schema   | Yes       |
 | Analyze Statistics    | No        |
@@ -46,7 +47,43 @@ Below is a table for what features the current Vertica adapter supports for Vert
 | Primary/Unique Keys   | No        |
 | Other DDLs            | No        |
 
+## Adapter Specific Configurations
+
+### Materialized - Incremental
+
+#### MERGE Statement
+Within your SQL file, you can specify the following config:
+```
+{{
+  config(
+    materialized = 'incremental',
+    incremental_strategy = 'merge',
+    merge_columns = [ 'id', 'name' ]
+  )
+}}
+```
+
+#### DELETE+INSERT Statement
+```
+{{
+  config(
+    materialized = 'incremental',
+    incremental_strategy = 'delete+insert',
+    unique_key = 'id'
+  )
+}}
+```
+
+
+
 ## Changes
+
+### 1.0.5
+- Added support for delete+insert merge
+
+### 1.0.3.1
+- Bug fix for handling max() from csv files
+- Reduced verbosity of adapter left in from debugging
 
 ### 1.0.3
 - Refactored the adapter to model after dbt's global_project macros

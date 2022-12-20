@@ -1,6 +1,14 @@
 import pytest
 
-from dbt.tests.adapter.basic.files import seeds_base_csv, seeds_added_csv, seeds_newcolumns_csv
+from dbt.tests.adapter.basic.files import (
+    seeds_base_csv,
+    seeds_added_csv,
+    seeds_newcolumns_csv,
+    base_view_sql,
+    base_table_sql,
+    schema_base_yml,
+    model_base
+)
 
 from dbt.tests.adapter.basic.test_base import BaseSimpleMaterializations
 from dbt.tests.adapter.basic.test_singular_tests import BaseSingularTests
@@ -11,7 +19,7 @@ from dbt.tests.adapter.basic.test_incremental import BaseIncremental
 from dbt.tests.adapter.basic.test_generic_tests import BaseGenericTests
 from dbt.tests.adapter.basic.test_snapshot_check_cols import BaseSnapshotCheckCols
 from dbt.tests.adapter.basic.test_snapshot_timestamp import BaseSnapshotTimestamp
-from dbt.tests.adapter.basic.test_adapter_methods import BaseAdapterMethod
+from dbt.tests.adapter.basic.test_adapter_methods import BaseAdapterMethod, models__upstream_sql, models__expected_sql
 
 schema_seed_added_yml = """version: 2
 seeds:
@@ -25,8 +33,25 @@ seeds:
         name: varchar(50)
 """
 
+config_materialized_var = """
+  {% set materialized_var = "table" %}
+  {% if var("materialized_var", "table") == "view" %}
+    {% set materialized_var = "view" %}
+  {% endif %}
+  {{ config(materialized=materialized_var) }}
+"""
+
+base_materialized_var_sql = config_materialized_var + model_base
+
 class TestSimpleMaterializationsVertica(BaseSimpleMaterializations):
-    pass
+    @pytest.fixture(scope="class")
+    def models(self):
+        return {
+            "view_model.sql": base_view_sql,
+            "table_model.sql": base_table_sql,
+            "swappable.sql": base_materialized_var_sql,
+            "schema.yml": schema_base_yml,
+        }
 
 
 class TestSingularTestsVertica(BaseSingularTests):
@@ -45,7 +70,8 @@ class TestEphemeralVertica(BaseEphemeral):
     pass
 
 
-class TestIncrementalVertica(BaseIncremental):
+# TODO: consider BaseIncrementalUniqueKey test for both strategies as well
+class TestIncrementalMergeVertica(BaseIncremental):
     @pytest.fixture(scope="class")
     def seeds(self):
         return {
@@ -54,6 +80,20 @@ class TestIncrementalVertica(BaseIncremental):
             "seeds.yml": schema_seed_added_yml,
         }
 
+class TestIncrementalDeleteInsertVertica(BaseIncremental):
+    @pytest.fixture(scope="class")
+    def seeds(self):
+        return {
+            "base.csv": seeds_base_csv,
+            "added.csv": seeds_added_csv,
+            "seeds.yml": schema_seed_added_yml,
+        }
+
+    @pytest.fixture(scope="class")
+    def project_config_update(self):
+        return {
+            "models": { "+incremental_strategy": "delete+insert" }
+        }
 
 class TestGenericTestsVertica(BaseGenericTests):
     pass
@@ -80,4 +120,4 @@ class TestSnapshotTimestampVertica(BaseSnapshotTimestamp):
 
 
 class TestBaseAdapterMethod(BaseAdapterMethod):
-  pass
+    pass
